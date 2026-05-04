@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Dashboard</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #fdfcf8; /* 아이보리 톤 */
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --accent-color: #7d8e7a; /* 차분한 그린 */
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #a5b5a2;
+            --shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto 30px;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            border: none;
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+            font-size: 1.2rem;
+        }
+
+        /* KPI 섹션 */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .kpi-card h3 { margin: 0; font-size: 0.9rem; opacity: 0.7; }
+        .kpi-card p { margin: 10px 0 0; font-size: 1.2rem; font-weight: bold; }
+
+        /* 메인 콘텐츠 레이아웃 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+
+        /* 일정 섹션 */
+        .section-title { font-size: 1.5rem; margin-bottom: 20px; border-left: 4px solid var(--accent-color); padding-left: 10px; }
+        
+        .schedule-group { margin-bottom: 40px; }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .schedule-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .schedule-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .emoji { font-size: 1.5rem; }
+        .info h4 { margin: 0; font-size: 1rem; }
+        .info p { margin: 5px 0 0; font-size: 0.85rem; opacity: 0.6; }
+
+        /* 차트 섹션 */
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Daily Dashboard</h1>
+        <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </header>
+
+    <!-- KPI 섹션 -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <h3>오늘의 날짜</h3>
+            <p id="date-display">-</p>
+        </div>
+        <div class="kpi-card">
+            <h3>현재 시각</h3>
+            <p id="time-display">00:00:00</p>
+        </div>
+        <div class="kpi-card">
+            <h3>남은 일정</h3>
+            <p id="task-count">8개</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Message</h3>
+            <p id="quote">오늘도 멋진 하루 보내세요! ✨</p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- 일정 리스트 -->
+        <div class="schedule-column">
+            <div class="schedule-group">
+                <div class="section-title">루틴 & 고정 일정</div>
+                <div class="card-grid">
+                    <div class="schedule-card">
+                        <span class="emoji">📚</span>
+                        <div class="info"><h4>전공 수업</h4><p>오전 10:00 - 12:00</p></div>
+                    </div>
+                    <div class="schedule-card">
+                        <span class="emoji">⛪</span>
+                        <div class="info"><h4>수요 예배</h4><p>오후 07:00</p></div>
+                    </div>
+                    <div class="schedule-card">
+                        <span class="emoji">🏃</span>
+                        <div class="info"><h4>운동 (필라테스)</h4><p>오후 02:00</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="schedule-group">
+                <div class="section-title">공적 일정 (Official)</div>
+                <div class="card-grid">
+                    <div class="schedule-card">
+                        <span class="emoji">👥</span>
+                        <div class="info"><h4>팀 프로젝트 회의</h4><p>도서관 4층 세미나실</p></div>
+                    </div>
+                    <div class="schedule-card">
+                        <span class="emoji">📝</span>
+                        <div class="info"><h4>비전공 데이터 분석 과제</h4><p>내일까지 마감!</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="schedule-group">
+                <div class="section-title">사적 일정 (Social)</div>
+                <div class="card-grid">
+                    <div class="schedule-card">
+                        <span class="emoji">☕</span>
+                        <div class="info"><h4>지인 커피 약속</h4><p>오후 04:00 성수동</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차트 섹션 -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>일정 분류 비중</h3>
+                <canvas id="donutChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>주간 일정 밀집도</h3>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 날짜 및 시간 업데이트
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+            document.getElementById('date-display').innerText = now.toLocaleDateString('ko-KR', dateOptions);
+            document.getElementById('time-display').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // 다크모드 토글
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.querySelector('.theme-toggle');
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                btn.innerText = '🌙';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                btn.innerText = '☀️';
+            }
+        }
+
+        // Chart.js 초기화
+        const donutCtx = document.getElementById('donutChart').getContext('2d');
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['루틴', '공적', '사적'],
+                datasets: [{
+                    data: [3, 2, 1],
+                    backgroundColor: ['#7d8e7a', '#a5b5a2', '#dcded9'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['월', '화', '수', '목', '금', '토', '일'],
+                datasets: [{
+                    label: '일정 수',
+                    data: [5, 4, 6, 3, 5, 2, 1],
+                    backgroundColor: '#7d8e7a',
+                    borderRadius: 5
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+</body>
+</html>
